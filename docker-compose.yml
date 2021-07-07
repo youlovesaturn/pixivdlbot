@@ -1,0 +1,13 @@
+version: '2'
+services:
+  app:
+    image: youlovesaturn/pixivdlbot
+    restart: always
+    environment:
+      TOKEN: "<TELEGRAM BOT TOKEN>"
+      API_URL: "<TELEGRAM BOT API URL>"
+    volumes: 
+        - data:/data
+
+volumes:
+    data:
