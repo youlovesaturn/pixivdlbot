@@ -6,12 +6,14 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"regexp"
+	"time"
 )
 
 type pixivResponse struct {
-	Pages []pixivPage `json:"body"`
+	Error        bool        `json:"error"`
+	ErrorMessage string      `json:"message"`
+	Pages        []pixivPage `json:"body"`
 }
 
 type pixivPage struct {
@@ -20,16 +22,32 @@ type pixivPage struct {
 	} `json:"urls"`
 }
 
+var errorTranslations = map[string]string{
+	"該当作品は削除されたか、存在しない作品IDです。": "The work ID has been deleted or does not exist.",
+}
+
 var pixivIDRegexp = regexp.MustCompile("[0-9]+")
 
+func translateError(japanese string) string {
+	english, ok := errorTranslations[japanese]
+	if !ok {
+		return japanese
+	}
+	return english
+}
+
 func getOriginalImage(link string) (r *bytes.Reader, err error) {
+	client := &http.Client{
+		Timeout: time.Second * 60,
+	}
+
 	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
 		return
 	}
 	req.Header.Set("Referer", "https://www.pixiv.net")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return
 	}
@@ -44,11 +62,8 @@ func getOriginalImage(link string) (r *bytes.Reader, err error) {
 	return
 }
 
-func getOriginalLinks(m string) (originals []string, err error) {
-	link, err := getLinkFromID(m)
-	if err != nil {
-		return
-	}
+func getOriginalLinks(id string) (originals []string, err error) {
+	link := "https://www.pixiv.net/ajax/illust/" + id + "/pages"
 
 	resp, err := http.Get(link)
 	if err != nil {
@@ -60,6 +75,11 @@ func getOriginalLinks(m string) (originals []string, err error) {
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(page)
 	if err != nil {
+		return
+	}
+
+	if page.Error {
+		err = errors.New(translateError(page.ErrorMessage))
 		return
 	}
 
@@ -77,17 +97,4 @@ func getIDFromMessage(m string) (id string, err error) {
 	}
 	return
 
-}
-
-func getLinkFromID(m string) (link string, err error) {
-	id, err := getIDFromMessage(m)
-	if err != nil {
-		return
-	}
-	link = "https://www.pixiv.net/ajax/illust/" + id + "/pages"
-	return
-}
-
-func getFilename(url string) string {
-	return filepath.Base(url)
 }

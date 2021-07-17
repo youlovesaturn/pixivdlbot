@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -47,17 +48,13 @@ func handleHelp(m *tb.Message) {
 func handleMessage(m *tb.Message) {
 	id, err := getIDFromMessage(m.Text)
 	if err != nil {
-		b.Send(m.Chat, "Wrong link. Try /help.")
+		b.Send(m.Chat, err.Error())
 		return
 	}
 
-	l, err := getLinkFromID(id)
+	links, err := getOriginalLinks(id)
 	if err != nil {
-		return
-	}
-
-	links, err := getOriginalLinks(l)
-	if err != nil {
+		b.Send(m.Chat, err.Error())
 		return
 	}
 
@@ -71,7 +68,7 @@ func handleMessage(m *tb.Message) {
 			}
 
 			f := &tb.Document{File: tb.FromReader(img),
-				FileName: getFilename(i)}
+				FileName: filepath.Base(i)}
 			b.Send(m.Chat, f)
 
 		}(i)
