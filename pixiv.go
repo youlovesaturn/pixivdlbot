@@ -38,7 +38,7 @@ func translateError(japanese string) string {
 
 func getOriginalImage(link string) (r *bytes.Reader, err error) {
 	client := &http.Client{
-		Timeout: time.Second * 60,
+		Timeout: time.Minute * 5,
 	}
 
 	req, err := http.NewRequest("GET", link, nil)
