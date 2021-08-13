@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"time"
@@ -43,18 +44,28 @@ func getOriginalImage(link string) (r *bytes.Reader, err error) {
 
 	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 	req.Header.Set("Referer", "https://www.pixiv.net")
 
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Println(err)
 		return
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 	r = bytes.NewReader(b)
@@ -67,14 +78,23 @@ func getOriginalLinks(id string) (originals []string, err error) {
 
 	resp, err := http.Get(link)
 	if err != nil {
+		log.Println(err)
 		return
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}()
 
 	page := &pixivResponse{}
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(page)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 
