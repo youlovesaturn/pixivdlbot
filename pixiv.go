@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -37,7 +36,7 @@ func translateError(japanese string) string {
 	return english
 }
 
-func getOriginalImage(link string) (r *bytes.Reader, err error) {
+func getOriginalImage(link string) (b []byte, err error) {
 	client := &http.Client{
 		Timeout: time.Minute * 5,
 	}
@@ -63,13 +62,11 @@ func getOriginalImage(link string) (r *bytes.Reader, err error) {
 		}
 	}()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	r = bytes.NewReader(b)
-
 	return
 }
 
